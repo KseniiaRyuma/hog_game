@@ -18,9 +18,20 @@ def roll_dice(num_rolls, dice=six_sided):
     # These assert statements ensure that num_rolls is a positive integer.
     assert type(num_rolls) == int, 'num_rolls must be an integer.'
     assert num_rolls > 0, 'Must roll at least once.'
-    # BEGIN Question 1
-    "*** REPLACE THIS LINE ***"
-    # END Question 1
+
+    sum = 0
+    check_num_rolls = True
+    while num_rolls > 0:
+        counted_dice = dice()
+        sum += counted_dice
+        num_rolls -= 1
+        if counted_dice == 1:
+            check_num_rolls = False
+    if check_num_rolls:
+        return sum
+    else:
+        return 0
+
 
 
 def take_turn(num_rolls, opponent_score, dice=six_sided):
@@ -34,27 +45,57 @@ def take_turn(num_rolls, opponent_score, dice=six_sided):
     assert num_rolls >= 0, 'Cannot roll a negative number of dice.'
     assert num_rolls <= 10, 'Cannot roll more than 10 dice.'
     assert opponent_score < 100, 'The game should be over.'
-    # BEGIN Question 2
-    "*** REPLACE THIS LINE ***"
-    # END Question 2
+    def free_bacon():
+        '''A player who chooses to roll zero dice scores one more than
+        the largest digit in the opponent's total score.'''
+        max = -1
+        for j in str(opponent_score):
+            i = int(j)
+            if i > max:
+                max = i
+        return max + 1
+
+    def hogtimus_prime(num):
+        '''If a player's score for the turn is a prime number, then
+        the turn score is increased to the next largest prime number.'''
+        return next_prime(num)
+
+    if num_rolls == 0:              # Case when a player chose to roll zero dice scores
+        score = free_bacon()
+        if is_prime(score):
+            return hogtimus_prime(score)
+        else:
+            return score
+
+    outcome_sum = roll_dice(num_rolls,  dice)
+    if is_prime(outcome_sum):
+        return hogtimus_prime(outcome_sum)
+    else:
+        return outcome_sum
 
 
 def select_dice(score, opponent_score):
     """Select six-sided dice unless the sum of SCORE and OPPONENT_SCORE is a
     multiple of 7, in which case select four-sided dice (Hog wild).
     """
-    # BEGIN Question 3
-    "*** REPLACE THIS LINE ***"
-    # END Question 3
+    sum_of_both = score + opponent_score
+    if sum_of_both%7 == 0:
+        return four_sided
+    return six_sided
 
 
 def is_swap(score0, score1):
     """Returns whether the last two digits of SCORE0 and SCORE1 are reversed
     versions of each other, such as 19 and 91.
     """
-    # BEGIN Question 4
-    "*** REPLACE THIS LINE ***"
-    # END Question 4
+    a1 = score0 % 10            # first figure from the right of the currebt player
+    a2 = (score0 % 100)//10     # second figure from the right of the currebt player
+    b2 = (score1 % 100)//10          # second figure from the right of the opponent
+    b1 = score1 % 10           # first figure from the right of the opponent
+
+    if a1 == b2 and a2 == b1:
+        return True
+    return False
 
 
 def other(who):
@@ -82,9 +123,45 @@ def play(strategy0, strategy1, score0=0, score1=0, goal=GOAL_SCORE):
     score1   :  The starting score for Player 1
     """
     who = 0  # Which player is about to take a turn, 0 (first) or 1 (second)
-    # BEGIN Question 5
-    "*** REPLACE THIS LINE ***"
-    # END Question 5
+
+    while score0 < goal and score1 < goal:
+
+        if who == 0:
+            num_scroll = strategy0(score0, score1)
+
+            # Hog Wild
+            dice = select_dice(score0, score1)
+
+            score_sum = take_turn(num_scroll, score1, dice)
+
+             # Piggy Back
+            if score_sum == 0:
+                score1 += num_scroll
+
+            score0 += score_sum
+
+            #Swine Swap
+            if is_swap(score0, score1):
+                score0, score1 = score1, score0
+
+        else:
+            num_scroll = strategy1(score1, score0)
+
+            # Hog Wild
+            dice = select_dice(score1, score0)
+
+            score_sum = take_turn(num_scroll, score0, dice)
+
+            # Piggy Back
+            if score_sum == 0:
+                score0 += num_scroll
+
+            score1 += score_sum
+
+            # Swine Swap
+            if is_swap(score1, score0):
+                score1, score0 = score0, score1
+
     return score0, score1
 
 
@@ -134,9 +211,15 @@ def make_averaged(fn, num_samples=1000):
     Note that the last example uses roll_dice so the hogtimus prime rule does
     not apply.
     """
-    # BEGIN Question 6
-    "*** REPLACE THIS LINE ***"
-    # END Question 6
+
+    def average(*args):
+        num = num_samples
+        result = 0
+        while num > 0:
+            result += fn(*args)
+            num -= 1
+        return result/num_samples
+    return average
 
 
 def max_scoring_num_rolls(dice=six_sided, num_samples=1000):
@@ -148,9 +231,18 @@ def max_scoring_num_rolls(dice=six_sided, num_samples=1000):
     >>> max_scoring_num_rolls(dice)
     10
     """
-    # BEGIN Question 7
-    "*** REPLACE THIS LINE ***"
-    # END Question 7
+    i = 10
+    best_value = 0
+    num_roles = 0
+
+    while i > 0:
+        curent = make_averaged(roll_dice, num_samples)(i, dice)
+        if curent >= best_value:
+            best_value = curent
+            num_roles = i
+
+        i -= 1
+    return num_roles
 
 
 def winner(strategy0, strategy1):
@@ -199,19 +291,22 @@ def bacon_strategy(score, opponent_score, margin=8, num_rolls=5):
     and rolls NUM_ROLLS otherwise.
     """
     # BEGIN Question 8
-    "*** REPLACE THIS LINE ***"
-    return 5  # Replace this statement
-    # END Question 8
+    num = take_turn(0, opponent_score, select_dice(score, opponent_score))
+    if num >= margin:
+        return 0
+    else:
+        return num_rolls
 
 
 def swap_strategy(score, opponent_score, num_rolls=5):
     """This strategy rolls 0 dice when it results in a beneficial swap and
     rolls NUM_ROLLS otherwise.
     """
-    # BEGIN Question 9
-    "*** REPLACE THIS LINE ***"
-    return 5  # Replace this statement
-    # END Question 9
+    num = take_turn(0, opponent_score, select_dice(score, opponent_score))
+    temp = num + score
+    if is_swap(temp, opponent_score) and opponent_score >= score and temp != opponent_score:
+        return 0
+    return num_rolls
 
 
 def final_strategy(score, opponent_score):
@@ -219,10 +314,16 @@ def final_strategy(score, opponent_score):
 
     *** YOUR DESCRIPTION HERE ***
     """
-    # BEGIN Question 10
-    "*** REPLACE THIS LINE ***"
-    return 5  # Replace this statement
-    # END Question 10
+    margin = 5
+    num_rolls = 3
+
+    num = take_turn(0, opponent_score, select_dice(score, opponent_score))
+
+    temp = num + score
+    if (is_swap(temp, opponent_score) and temp < opponent_score) or (num >= margin and
+                            not(is_swap(temp, opponent_score) and temp > opponent_score)):
+        return 0
+    return num_rolls
 
 
 ##########################
